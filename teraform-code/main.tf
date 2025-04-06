@@ -1,3 +1,91 @@
+provider "aws" {
+  region = "us-west-2"
+}
+
+# VPC and networking resources
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  enable_dns_support = true
+  enable_dns_hostnames = true
+  
+  tags = {
+    Name = "medusa-vpc"
+    CreatedBy = "nXtCyberNet"
+  }
+}
+
+resource "aws_subnet" "main_a" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
+  map_public_ip_on_launch = true
+  
+  tags = {
+    Name = "medusa-subnet-a"
+    CreatedBy = "nXtCyberNet"
+  }
+}
+
+resource "aws_subnet" "main_b" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-west-2b"
+  map_public_ip_on_launch = true
+  
+  tags = {
+    Name = "medusa-subnet-b"
+    CreatedBy = "nXtCyberNet"
+  }
+}
+
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+  
+  tags = {
+    Name = "medusa-igw"
+    CreatedBy = "nXtCyberNet"
+  }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+  
+  tags = {
+    Name = "medusa-public-rt"
+    CreatedBy = "nXtCyberNet"
+  }
+}
+
+resource "aws_route_table_association" "a" {
+  subnet_id      = aws_subnet.main_a.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "b" {
+  subnet_id      = aws_subnet.main_b.id
+  route_table_id = aws_route_table.public.id
+}
+
+# HTTP Load Balancer (required by your container references)
+resource "aws_lb" "lb_http" {
+  name               = "medusa-lb-http"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.lb_sg.id]
+  subnets            = [aws_subnet.main_a.id, aws_subnet.main_b.id]
+
+  tags = {
+    Name = "medusa-lb-http"
+    CreatedBy = "nXtCyberNet"
+  }
+}
+
+# Security Groups
 resource "aws_security_group" "ecs_sg" {
   vpc_id = aws_vpc.main.id
 
@@ -171,6 +259,19 @@ resource "aws_iam_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Variables for ECR repository
+variable "account_id" {
+  description = "AWS Account ID"
+  type        = string
+  default     = "123456789012" # Replace with your actual AWS account ID
+}
+
+variable "aws_region" {
+  description = "AWS Region"
+  type        = string
+  default     = "us-west-2"
+}
+
 resource "aws_ecs_task_definition" "main" {
   family                   = "ecs-task"
   network_mode             = "awsvpc"
@@ -239,7 +340,7 @@ resource "aws_ecs_task_definition" "main" {
     },
     {
       name      = "aws-app"
-      image     = "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/my-repository:latest"
+      image     = "${var.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/my-repository:latest"
       essential = true
       environment = [
         {
@@ -330,10 +431,20 @@ output "app_load_balancer_dns" {
   description = "DNS name of the application load balancer"
 }
 
+output "http_load_balancer_dns" {
+  value = aws_lb.lb_http.dns_name
+  description = "DNS name of the HTTP load balancer"
+}
+
 output "ecs_cluster_id" {
   value = aws_ecs_cluster.main.id
 }
 
 output "ecs_service_name" {
   value = aws_ecs_service.main.name
+}
+
+output "ecr_repository_url" {
+  value = "${var.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/my-repository"
+  description = "URL of the ECR repository"
 }
