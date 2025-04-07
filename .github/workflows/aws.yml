@@ -5,12 +5,10 @@ on:
     branches: [ "main" ]
 
 env:
-  AWS_REGION: us-west-2                     # Your AWS region
-  ECR_REPOSITORY: nothing                   # Your ECR repo name (e.g. medusa-backend)
-  ECS_SERVICE: backend                      # Your ECS service name
-  ECS_CLUSTER: medusa                       # Your ECS cluster name
-  ECS_TASK_DEFINITION: task-definition.json  # Path to your ECS task def JSON
-  CONTAINER_NAME: backend-code              # Container name to update in task def
+  AWS_REGION: us-west-2
+  ECR_REPOSITORY: nothing
+  ECS_SERVICE: backend
+  ECS_CLUSTER: medusa
 
 permissions:
   contents: read
@@ -46,10 +44,9 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    - name: Prepare task definition
+    - name: Create task definition file
       run: |
-        # Ensure task definition is in the correct location and format
-        cat > task-definition.json << EOF
+        cat > task-definition.json << 'EOF'
         {
           "family": "ecs-task",
           "networkMode": "awsvpc",
@@ -60,7 +57,7 @@ jobs:
           "containerDefinitions": [
             {
               "name": "backend-code",
-              "image": "<ECR_IMAGE_URI>",  
+              "image": "placeholder-will-be-updated",
               "essential": true,
               "portMappings": [
                 {
@@ -107,15 +104,29 @@ jobs:
         }
         EOF
 
-    - name: Fill in new image in ECS task definition
+    - name: Debug task definition
+      run: |
+        echo "Reviewing task definition content:"
+        cat task-definition.json
+        echo "Container definitions:"
+        jq '.containerDefinitions[].name' task-definition.json
+
+    - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION }}
-        container-name: ${{ env.CONTAINER_NAME }}
+        task-definition: task-definition.json
+        container-name: backend-code
         image: ${{ steps.build-image.outputs.image }}
 
-    - name: Deploy ECS task definition to service
+    - name: Debug updated task definition
+      run: |
+        echo "Reviewing updated task definition content:"
+        cat ${{ steps.task-def.outputs.task-definition }}
+        echo "Container definitions:"
+        jq '.containerDefinitions[].name' ${{ steps.task-def.outputs.task-definition }}
+
+    - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
