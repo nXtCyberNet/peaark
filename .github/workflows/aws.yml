@@ -9,8 +9,8 @@ env:
   ECR_REPOSITORY: nothing                   # Your ECR repo name (e.g. medusa-backend)
   ECS_SERVICE: backend                      # Your ECS service name
   ECS_CLUSTER: medusa                       # Your ECS cluster name
-  ECS_TASK_DEFINITION: .github/task-definition.json          # Pre-registered ECS task definition (family:revision)
-  CONTAINER_NAME: backend-code              # Container name in ECS task definition
+  ECS_TASK_DEFINITION: .github/task-definition.json  # Path to your ECS task def JSON
+  CONTAINER_NAME: backend-code              # Container name to update in task def
 
 permissions:
   contents: read
@@ -46,7 +46,7 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    - name: Create new ECS task definition revision with new image
+    - name: Fill in new image in ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
@@ -54,7 +54,7 @@ jobs:
         container-name: ${{ env.CONTAINER_NAME }}
         image: ${{ steps.build-image.outputs.image }}
 
-    - name: Deploy new ECS task definition to service
+    - name: Deploy ECS task definition to service
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
