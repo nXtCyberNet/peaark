@@ -9,7 +9,7 @@ env:
   ECR_REPOSITORY: nothing                   # Your ECR repo name (e.g. medusa-backend)
   ECS_SERVICE: backend                      # Your ECS service name
   ECS_CLUSTER: medusa                       # Your ECS cluster name
-  ECS_TASK_DEFINITION: ecs-task:2           # Pre-registered ECS task definition (family:revision)
+  ECS_TASK_DEFINITION: .github/task-definition.json          # Pre-registered ECS task definition (family:revision)
   CONTAINER_NAME: backend-code              # Container name in ECS task definition
 
 permissions:
