@@ -340,7 +340,7 @@ resource "aws_ecs_task_definition" "main" {
     },
     {
       name      = "aws-app"
-      image     = "${var.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/my-repository:latest"
+      image     = "${var.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/nothing:latest"
       essential = true
       environment = [
         {
@@ -388,7 +388,7 @@ resource "aws_ecs_task_definition" "main" {
 
 # Add an ECR image pull data source to ensure always getting the latest image
 data "aws_ecr_image" "app_image" {
-  repository_name = "my-repository"
+  repository_name = "nothing"
   image_tag       = "latest"
 }
 
@@ -445,6 +445,6 @@ output "ecs_service_name" {
 }
 
 output "ecr_repository_url" {
-  value = "${var.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/my-repository"
+  value = "${var.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/nothing"
   description = "URL of the ECR repository"
 }
