@@ -5,13 +5,12 @@ on:
     branches: [ "main" ]
 
 env:
-  AWS_REGION: us-west-2                     # Your AWS region
-  ECR_REPOSITORY: nothing                   # Your ECR repo name (e.g. medusa-backend)
-  ECS_SERVICE: backend                      # Your ECS service name
-  ECS_CLUSTER: medusa                       # Your ECS cluster name
-  ECS_TASK_DEFINITION: .github/task-definition.json  # Path to your ECS task def JSON
-  CONTAINER_NAME: backend-code              # Container name to update in task def
-
+  AWS_REGION: us-west-2                    
+  ECR_REPOSITORY: nothing                  
+  ECS_SERVICE: backend                     
+  ECS_CLUSTER: medusa                       
+  ECS_TASK_DEFINITION: .github/task-definition.json  # Make sure this path is correct
+  CONTAINER_NAME: backend-code       
 permissions:
   contents: read
 
