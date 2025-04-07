@@ -5,12 +5,13 @@ on:
     branches: [ "main" ]
 
 env:
-  AWS_REGION: us-west-2                    
-  ECR_REPOSITORY: nothing                  
-  ECS_SERVICE: backend                     
-  ECS_CLUSTER: medusa                       
-  ECS_TASK_DEFINITION: .github/task-definition.json  # Make sure this path is correct
-  CONTAINER_NAME: backend-code       
+  AWS_REGION: us-west-2                     # Your AWS region
+  ECR_REPOSITORY: nothing                   # Your ECR repo name (e.g. medusa-backend)
+  ECS_SERVICE: backend                      # Your ECS service name
+  ECS_CLUSTER: medusa                       # Your ECS cluster name
+  ECS_TASK_DEFINITION: task-definition.json  # Path to your ECS task def JSON
+  CONTAINER_NAME: backend-code              # Container name to update in task def
+
 permissions:
   contents: read
 
@@ -44,6 +45,67 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Prepare task definition
+      run: |
+        # Ensure task definition is in the correct location and format
+        cat > task-definition.json << EOF
+        {
+          "family": "ecs-task",
+          "networkMode": "awsvpc",
+          "requiresCompatibilities": ["FARGATE"],
+          "cpu": "512",
+          "memory": "1024",
+          "executionRoleArn": "arn:aws:iam::129794356202:role/medusa-task-execution-role",
+          "containerDefinitions": [
+            {
+              "name": "backend-code",
+              "image": "<ECR_IMAGE_URI>",  
+              "essential": true,
+              "portMappings": [
+                {
+                  "containerPort": 9000,
+                  "protocol": "tcp"
+                }
+              ],
+              "environment": [
+                { "name": "NODE_ENV", "value": "production" },
+                { "name": "REDIS_HOST", "value": "redis" },
+                { "name": "DB_HOST", "value": "postgres" },
+                { "name": "POSTGRES_PASSWORD", "value": "mysecretpassword" }
+              ]
+            },
+            {
+              "name": "postgres",
+              "image": "postgres",
+              "essential": true,
+              "portMappings": [
+                {
+                  "containerPort": 5432,
+                  "protocol": "tcp"
+                }
+              ],
+              "environment": [
+                {
+                  "name": "POSTGRES_PASSWORD",
+                  "value": "mysecretpassword"
+                }
+              ]
+            },
+            {
+              "name": "redis",
+              "image": "redis",
+              "essential": true,
+              "portMappings": [
+                {
+                  "containerPort": 6379,
+                  "protocol": "tcp"
+                }
+              ]
+            }
+          ]
+        }
+        EOF
 
     - name: Fill in new image in ECS task definition
       id: task-def
