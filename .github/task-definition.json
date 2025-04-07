@@ -1,55 +1,7 @@
-{
-  "family": "ecs-task",
-  "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
-  "cpu": "512",
-  "memory": "1024",
-  "executionRoleArn": "arn:aws:iam::129794356202:role/medusa-task-execution-role",
-  "containerDefinitions": [
-    {
-      "name": "backend-code",
-      "image": "nginx",  
-      "essential": true,
-      "portMappings": [
-        {
-          "containerPort": 9000,
-          "protocol": "tcp"
-        }
-      ],
-      "environment": [
-        { "name": "NODE_ENV", "value": "production" },
-        { "name": "REDIS_HOST", "value": "redis" },
-        { "name": "DB_HOST", "value": "postgres" },
-        { "name": "POSTGRES_PASSWORD", "value": "mysecretpassword" }
-      ]
-    },
-    {
-      "name": "postgres",
-      "image": "postgres",
-      "essential": true,
-      "portMappings": [
-        {
-          "containerPort": 5432,
-          "protocol": "tcp"
-        }
-      ],
-      "environment": [
-        {
-          "name": "POSTGRES_PASSWORD",
-          "value": "mysecretpassword"
-        }
-      ]
-    },
-    {
-      "name": "redis",
-      "image": "redis",
-      "essential": true,
-      "portMappings": [
-        {
-          "containerPort": 6379,
-          "protocol": "tcp"
-        }
-      ]
-    }
-  ]
-}
+- name: Fill in the new image ID in the Amazon ECS task definition
+  id: task-def
+  uses: aws-actions/amazon-ecs-render-task-definition@v1
+  with:
+    task-definition: .aws/task-definition.json
+    container-name: backend-code
+    image: ${{ steps.build-image.outputs.image }}
