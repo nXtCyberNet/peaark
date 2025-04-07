@@ -8,7 +8,7 @@
   "containerDefinitions": [
     {
       "name": "backend-code",
-      "image": "nginx",  // This will be replaced with your built image by GitHub Actions
+      "image": "nginx",  
       "essential": true,
       "portMappings": [
         {
